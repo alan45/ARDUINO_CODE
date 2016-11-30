@@ -21,7 +21,7 @@
 #define DRAW_LINE               0xFFC8
 #define LINE_PATTERN            0xFF9B
 #define PUT_PIXEL               0xFFC1
-
+#define MOVE_ORIGIN             0xFFCC
 
 #define POLYGON_FILLED          0x0014
 

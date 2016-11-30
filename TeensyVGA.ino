@@ -3,6 +3,12 @@
 #include "/home/alan/Documents/ARDUINO_CODE/TeensyVGA/Definitions.ino"
 
 const int RESET =  4;
+const int GRAPH_MIN_X = 40;
+const int GRAPH_MIN_Y = 30;
+const int GRAPH_MAX_X = 590;
+const int GRAPH_MAX_Y = 420;
+
+
 
 void setup()
 {
@@ -31,95 +37,58 @@ void setup()
 void loop()
 {
   float fX;
-  int xArray[5] = {200, 230, 280, 400, 300};
-  int yArray[5] = {250, 270, 300, 450, 220};
-  char s[100] = "Hello World how are you today";
-  char s1[100];
+  float increment;
+  char s[20];
   elapsedMillis t;
 
 
 
 
-  vga(BACK_COLOUR, BISQUE );
+  vga(BACK_COLOUR,  LIGHTSTEELBLUE );
   vga(TEXT_BOLD, OFF);
   vga(TEXT_ITALIC, OFF);
   vga(TEXT_INVERSE, OFF);
-
-  vga(TEXT_BACKGROUND, BISQUE);
+  vga(TEXT_BACKGROUND,  LIGHTSTEELBLUE);
   vga(TEXT_COLOUR, BLACK);
-
   vga(TEXT_FONT, FONT1);
-
-
-  t = 0;
   vga(CLEAR_SCREEN);
 
-  vga(MOVE_CURSOR, 20, 1);
-  sprintf(s1, "Time to clear screen =  %d mS", (int)(t));
-  vga(PUT_STRING, s1);
-  t = 0;
+  // The outline of the graph
+  vga(RECTANGLE_OUTLINE,GRAPH_MIN_X,GRAPH_MIN_Y,GRAPH_MAX_X,GRAPH_MAX_Y,GREEN);
 
 
+ double xValue = 0;
 
-  vga(MOVE_CURSOR, 3, 1);
+ increment = (GRAPH_MAX_X - GRAPH_MIN_X)/10;
+ //Draw X axis ticks
+   for(int x1=GRAPH_MIN_X + increment; x1< GRAPH_MAX_X; x1 = x1 + increment)
+   {
+   vga(DRAW_LINE,x1,GRAPH_MAX_Y,x1,GRAPH_MIN_Y,LIGHTGREEN ); 
+   }
 
-
-
-
-  vga(PUT_STRING, s);
-
-  //vga(MOVE_CURSOR,7,1);
-  //vga(TEXT_FONT,FONT2);
-  //vga(PUT_STRING,s);
-
-
-  //vga(TEXT_INVERSE,ON);
-  //vga(MOVE_CURSOR,9,1);
-  //vga(TEXT_FONT,FONT3);
-  //vga(PUT_STRING,s);
-
-  //sprintf(s,"This is formatted %10.6f   %4.2f",3.1415926,5.0);
-  //vga(TEXT_INVERSE,OFF);
-  //vga(MOVE_CURSOR,11,1);
-  //vga(TEXT_FONT,FONT3);
-  //vga(PUT_STRING,s);
-
-
-
-  vga(MOVE_CURSOR, 26, 1);
-  sprintf(s1, "Text write time =  %d ", (int)(t));
-  vga(PUT_STRING, s1);
-  t = 0;
+ increment = (GRAPH_MAX_X - GRAPH_MIN_X)/10;
+ //Label X axis ticks
+ for(int x1=GRAPH_MIN_X; x1 < GRAPH_MAX_X + increment; x1 = x1 + increment)
+   {
+   vga(MOVE_ORIGIN,x1-8,GRAPH_MAX_Y+5);
+   sprintf(s,"%0.1f",xValue);
+   vga(PUT_STRING,s);
+   xValue = xValue + 0.1;
+   }
 
 
 
 
-  vga(RECTANGLE_OUTLINE, 450, 110, 500, 320, RED );
-  vga(RECTANGLE_FILLED, 500, 320, 590, 400, BLUEVIOLET);
-  vga(CHANGE_COLOUR, BLUEVIOLET, CORNFLOWERBLUE );
-  vga(CIRCLE_OUTLINE, 300, 300, 40, RED);
-  vga(CIRCLE_FILLED, 300, 300, 20, BLUE);
-  vga(DRAW_LINE, 1, 1, 300, 400, WHITE);
-  vga(POLYGON_FILLED, 4, xArray, yArray, RED);
-  vga(TRIANGLE_OUTLINE, 300, 200, 400, 300, 400, 40, RED);
 
 
-
-
-  
-
-    // Draw a sine wave
-    for (float x = 0.0; x < 10.0; x = x + 0.01)
+   // Draw a sine wave
+    for (float x = 0.0; x < 10.0; x = x + 0.1)
     {
       fX = sin(x) * 100;
-      vga(PUT_PIXEL, (int)(x * 50.0 + 10), (int)(200.0 +  fX), BLACK);
+      vga(PUT_PIXEL, (int)(x * 50.0 + GRAPH_MIN_X), (int)(200.0 +  fX), BLACK);
     }
 
-    vga(MOVE_CURSOR,32,1);
-    sprintf(s1,"Sine wave time =  %d ",(int)(t));
-    vga(PUT_STRING,s1);
-
-    
+  
 
     delay(10000);
 
