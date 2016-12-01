@@ -36,23 +36,42 @@ void setup()
 
 void loop()
 {
-  float fX;
+  float x, fX;
+  int i;
+  int graphXdata[1200];
+  int graphYdata[1200];
+  
+  for (i = 0; i < 1000; i++)
+  {
+    x = (float)(i / 100.0);
+    fX = sin(x) * 100;
+    
+    graphXdata[i] = i;
+    graphYdata[i] = (int)(fX);
+  }
 
   drawGraph();
+  plotData(graphXdata,graphYdata);
 
-  // Draw a sine wave
-  for (float x = 0.0; x < 10.0; x = x + 0.1)
-  {
-    fX = sin(x) * 100;
-    vga(PUT_PIXEL, (int)(x * 50.0 + GRAPH_MIN_X), (int)(200.0 +  fX), BLACK);
-  }
+
 
   delay(10000);
 
 }
 
+void plotData(int *Xdata,int *Ydata)
+{
+  int i, xValue, yValue;
+  
+  for (i = 0; i < 1000; i++)
+  {
 
-
+    //Note need to work on a way to scale the Xaxis value automatically
+    xValue = (int)(((float)(Xdata[i])/1.79)) + GRAPH_MIN_X; // Convert i to pixels offset from start of x axis
+    yValue = Ydata[i] + 300;
+    vga(PUT_PIXEL, xValue , yValue, BLACK);
+  }
+}
 
 
 
