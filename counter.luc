@@ -1,13 +1,13 @@
-module pulse(
+module counter (
     input  clk,      // clock
     input  rst,      // reset
-    output clock[4]  // output
+    output count[8]  // output
   ) {
   
   dff counter[28](.clk(clk), .rst(rst));
 
   always {
-    clock = counter.q[16:13];
+    count = counter.q[27:20];
     counter.d = counter.q + 1;
   }
 }
