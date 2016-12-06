@@ -10,7 +10,7 @@ const int byte4 =    16;
 const int byte5 =    15;      
 const int byte6 =    14;        
 const int byte7 =    13; 
-const int scope =     2;
+const int loadFPGA  = 22;
 const int FPGAready = 21;
 
 
@@ -23,7 +23,8 @@ const int GRAPH_MAX_Y = 420;
 
 volatile int  count;
 volatile byte data_from_FPGA;
-
+volatile int graphXdata[1200];
+volatile int graphYdata[1200];
 
 
 
@@ -66,47 +67,38 @@ void setup()
   pinMode(byte6,     INPUT);
   pinMode(byte7,     INPUT);
   pinMode(FPGAready, INPUT);
-//  pinMode(loadFPGA,  OUTPUT);
+  pinMode(loadFPGA,  OUTPUT);
  
  data_from_FPGA = 39;
- 
-attachInterrupt(digitalPinToInterrupt(FPGAready), service_FPGA, RISING);
+ digitalWriteFast(loadFPGA,LOW);
+ attachInterrupt(digitalPinToInterrupt(FPGAready), service_FPGA, RISING);
   
 }
 
 
 void loop()
 {
-  float x, fX;
   int i;
-  int graphXdata[1200];
-  int graphYdata[1200];
   char s[20];
 
-   
- 
+ for(i=0;i<250;i++)
+ {
+  digitalWriteFast(loadFPGA,LOW);
+  delay(1);
+  digitalWriteFast(loadFPGA,HIGH);
+  delayMicroseconds(1);
+  digitalWriteFast(loadFPGA,LOW);
+ }
 
 
-
-  
-//  for (i = 0; i < 1000; i++)
-//  {
-//    x = (float)(i / 100.0);
-//    fX = sin(x) * 100;
-    
-//    graphXdata[i] = i;
-//    graphYdata[i] = (int)(fX);
-//  }
-
-
-
-// if(count == 100)  
-// {
-//  detachInterrupt(digitalPinToInterrupt(FPGAready));;
-//  drawGraph();
-//  plotData(graphXdata,graphYdata);
-//  delay(10000);
-// }
+ if(count > 1000)  
+ {
+  detachInterrupt(digitalPinToInterrupt(FPGAready));;
+  drawGraph();
+  plotData(graphXdata,graphYdata);
+  count = 0;
+  attachInterrupt(digitalPinToInterrupt(FPGAready), service_FPGA, RISING);
+ }
 
    
   vga(MOVE_ORIGIN, 20,20);
@@ -117,18 +109,18 @@ void loop()
   i = (int)(data_from_FPGA);
   sprintf(s, "%d", i);
   vga(PUT_STRING, s);
+  
+  
+  delay(500);
 
   
-
-  delay(100);
-
 }
 
 
 
 
 
-void plotData(int *Xdata,int *Ydata)
+void plotData(volatile int *Xdata,volatile int *Ydata)
 {
   int i, xValue, yValue;
   
@@ -136,8 +128,8 @@ void plotData(int *Xdata,int *Ydata)
   {
 
     //Note need to work on a way to scale the Xaxis value automatically
-    xValue = (int)(((float)(Xdata[i])/1.79)) + GRAPH_MIN_X; // Convert i to pixels offset from start of x axis
-    yValue = Ydata[i] + 300;
+    xValue = (i/2) + GRAPH_MIN_X; // Convert i to pixels offset from start of x axis
+    yValue = GRAPH_MAX_Y - Ydata[i] ;
     vga(PUT_PIXEL, xValue , yValue, BLACK);
   }
 }
@@ -161,7 +153,8 @@ void service_FPGA()
   bitWrite(data_from_FPGA, 5, digitalReadFast(byte5));
   bitWrite(data_from_FPGA, 6, digitalReadFast(byte6));
   bitWrite(data_from_FPGA, 7, digitalReadFast(byte7));
- count++;
+  graphYdata[count] = data_from_FPGA;
+  count++;
 }
 
 

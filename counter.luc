@@ -4,10 +4,10 @@ module counter (
     output count[8]  // output
   ) {
   
-  dff counter[28](.clk(clk), .rst(rst));
+  dff counter[24](.clk(clk), .rst(rst));
 
   always {
-    count = counter.q[27:20];
+    count = counter.q[23:16];
     counter.d = counter.q + 1;
   }
 }

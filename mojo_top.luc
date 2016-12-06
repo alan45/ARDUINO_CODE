@@ -25,12 +25,14 @@ module mojo_top (
     reset_conditioner reset_cond;
     pulse pulse(.rst(rst));
     counter count(.rst(rst));
+    dff ram_ptr[10];
+    simple_ram ram (#SIZE(8), #DEPTH(1024));
     }
   
   
  
   
-  
+   var i;
   
   always {
     reset_cond.in = ~rst_n; // input raw inverted reset signal
@@ -41,8 +43,15 @@ module mojo_top (
     spi_channel = bzzzz;    // not using flags
     avr_rx = bz;            // not using serial port
     
-    byte = count.count;
-    
+     
+    // As a test fill up ram with incrementing count
+   
+   for (i = 0; i < 500; i++) 
+      {
+       ram.address    = i;
+       ram.write_en   = 1;
+       ram.write_data = i;
+      }
     
     
     
@@ -53,8 +62,10 @@ module mojo_top (
          {
     
           0: load  = 0;
-          1: load  = 0;
-          2: load  = 1;
+          1: load  = 1;
+            
+          2: load  = 0;
+             
           3: load  = 0;
           4: load  = 0;
           default: load = 0;
@@ -62,8 +73,14 @@ module mojo_top (
    // }
     
     
-    led = count.count;
-     
+    
+    ram.write_en = 0;
+    ram.address  = ram_ptr.q;
+    ram_ptr.d = ram_ptr.q + 1;
+    if(ram_ptr.q > 999) ram_ptr.d = 0;
+    
+    led = ram_ptr.q;
+    byte = ram.read_data; 
    
        
          
