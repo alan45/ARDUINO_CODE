@@ -1,13 +1,15 @@
 module pulse(
     input  clk,      // clock
     input  rst,      // reset
-    output clock[4]  // output
+    output clock  // output
   ) {
   
-  dff counter[14](.clk(clk), .rst(rst));
+  const NUM_BITS = 22;
+  
+  dff counter[NUM_BITS](.clk(clk), .rst(rst));
 
   always {
-    clock = counter.q[10:7];
+    clock = counter.q[NUM_BITS - 1];
     counter.d = counter.q + 1;
   }
 }

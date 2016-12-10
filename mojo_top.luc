@@ -4,94 +4,84 @@ module mojo_top (
      output led [8],         // 8 user controllable LEDs
      output byte[8],
      output load,
-     input request_to_send,
-    
-     input cclk,             // configuration clock, AVR ready when high
-    output spi_miso,        // AVR SPI MISO
-    input spi_ss,           // AVR SPI Slave Select
-    input spi_mosi,         // AVR SPI MOSI
-    input spi_sck,          // AVR SPI Clock
-    output spi_channel [4], // AVR general purpose pins (used by default to select ADC channel)
-    input avr_tx,           // AVR TX (FPGA RX)
-    output avr_rx,          // AVR RX (FPGA TX)
-    input avr_rx_busy       // AVR RX buffer full
-  ) {
+     output  test1,
+     output  test2,
+     input request_to_send
+   ) 
   
+  {
+  
+  const NUM_BYTES = 250;
   sig rst;                  // reset signal
   
   .clk(clk) {
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
-    pulse pulse(.rst(rst));
-    counter count(.rst(rst));
-    dff ram_ptr[10];
-    simple_ram ram (#SIZE(8), #DEPTH(1024));
+    edge_detector edge;
+    pipeline pipe(#DEPTH(2));
+    simple_ram ram(#SIZE(8), #DEPTH(NUM_BYTES));
+        
+    .rst(rst)
+        {
+        fsm state = {WRITE_RAM, READ_RAM, PULSE};
+        pulse pulse;
+        pulse2 pulse2;
+        }
     }
   
   
  
+  var i;
   
-   var i;
   
   always {
     reset_cond.in = ~rst_n; // input raw inverted reset signal
     rst = reset_cond.out;   // conditioned reset
-    
     led = 8h00;             // turn LEDs off
-    spi_miso = bz;          // not using SPI
-    spi_channel = bzzzz;    // not using flags
-    avr_rx = bz;            // not using serial port
+    byte = 0;
+    load = 0;
+    test1 = 0;
+    test2 = 0;
     
-     
-    // As a test fill up ram with incrementing count
+    ram.write_en   = 0;
+    ram.address    = 0;
+    ram.write_data = 0;
+        
+    
+    pipe.in  = request_to_send;
+    edge.in  = pulse.clock;
+    
+    
    
-   for (i = 0; i < 500; i++) 
+    
+    
+    case(state.q)
+      
       {
-       ram.address    = i;
-       ram.write_en   = 1;
-       ram.write_data = i;
-      }
-    
-    
-    
-  //  if(request_to_send == 0)
-  //    {
-       
-       case (pulse.clock)
-         {
-    
-          0: load  = 0;
-          1: load  = 1;
-            
-          2: load  = 0;
-             
-          3: load  = 0;
-          4: load  = 0;
-          default: load = 0;
+      state.WRITE_RAM:
+        
+        if(pulse2.clock >= NUM_BYTES) state.d = state.READ_RAM; 
+         else  
+          {
+          ram.write_data = pulse2.clock;
+          ram.address    = pulse2.clock;
+          ram.write_en   = 1;
           }
-   // }
-    
-    
-    
-    ram.write_en = 0;
-    ram.address  = ram_ptr.q;
-    ram_ptr.d = ram_ptr.q + 1;
-    if(ram_ptr.q > 999) ram_ptr.d = 0;
-    
-    led = ram_ptr.q;
-    byte = ram.read_data; 
-   
-       
+        
          
-    
-    
-    
-    
-    
-    
-    
-    
-    
-  }
+      state.READ_RAM: 
+        if(pulse2.clock <= NUM_BYTES) 
+           { 
+           ram.address    = pulse2.clock;
+           ram.write_en   = 0;
+           led = ram.read_data;
+           test1 = 1; 
+           load  = 1;
+           }
+          
+    }
+      
+  }  
+   
 }

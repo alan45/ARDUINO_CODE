@@ -8,4 +8,6 @@ NET "byte<6>" LOC = P21 | IOSTANDARD = LVTTL;
 NET "byte<7>" LOC = P22 | IOSTANDARD = LVTTL;
 
 NET "load" LOC = P23      | IOSTANDARD = LVTTL;
-NET "request_to_send" LOC = P33 | IOSTANDARD = LVTTL;
+NET "request_to_send" LOC = P24 | IOSTANDARD = LVTTL;
+NET "test1" LOC = P1      | IOSTANDARD = LVTTL;
+NET "test2" LOC = P123      | IOSTANDARD = LVTTL;
