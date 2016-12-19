@@ -1,87 +1,155 @@
-module mojo_top (
-     input clk,              // 50MHz clock
-     input rst_n,            // reset button (active low)
-     output led [8],         // 8 user controllable LEDs
-     output byte[8],
-     output load,
-     output  test1,
-     output  test2,
-     input request_to_send
+global Globals 
+   {
+   const NUM_BYTES    = 1024;
+   const NUM_BITS     = 16;  
+   const COUNT        = 20;  
+   }
+
+module mojo_top 
+   (
+    input   clk,            
+    input   rst_n,
+    input   cclk,              // configuration clock, AVR ready when high
+    output  spi_miso,          // AVR SPI MISO
+    input   spi_ss,            // AVR SPI Slave Select
+    input   spi_mosi,          // AVR SPI MOSI
+    input   spi_sck,           // AVR SPI Clock
+    output  spi_channel [4],   // AVR general purpose pins (used by default to select ADC channel)
+    input   avr_tx,            // AVR TX (FPGA RX)
+    output  avr_rx,            // AVR RX (FPGA TX)
+    input   avr_rx_busy,       // AVR RX buffer full
+    input   request_to_send,
+    input   request_ram_load,
+    input   request_reset,
+    output  led [8],         
+    output  uart_tx,
+    input   uart_rx
+    
    ) 
   
   {
   
-  const NUM_BYTES = 250;
   sig rst;                  // reset signal
-  
+   
   .clk(clk) {
-    // The reset conditioner is used to synchronize the reset signal to the FPGA
-    // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
-    edge_detector edge;
-    pipeline pipe(#DEPTH(2));
-    simple_ram ram(#SIZE(8), #DEPTH(NUM_BYTES));
-        
+    simple_ram ram(#SIZE(Globals.NUM_BITS), #DEPTH(Globals.NUM_BYTES));
+   
+     
     .rst(rst)
         {
-        fsm state = {WRITE_RAM, READ_RAM, PULSE};
-        pulse pulse;
-        pulse2 pulse2;
-        }
+          fsm send_word         = {IDLE, HIGH_BYTE, LOW_BYTE };     
+          fsm receive_word      = {IDLE, ACTION };        
+        
+       uart_tx transmit_to_teensy  (#BAUD(500000));
+       uart_rx receive_from_teensy (#BAUD(500000));
+      //  pulse pulse;
+        
+         }
     }
   
   
  
-  var i;
-  
+ 
+  var index;
   
   always {
     reset_cond.in = ~rst_n; // input raw inverted reset signal
-    rst = reset_cond.out;   // conditioned reset
-    led = 8h00;             // turn LEDs off
-    byte = 0;
-    load = 0;
-    test1 = 0;
-    test2 = 0;
+    rst = reset_cond.out;   // conditioned resetelse state.d = state.DONE;
     
-    ram.write_en   = 0;
-    ram.address    = 0;
-    ram.write_data = 0;
-        
-    
-    pipe.in  = request_to_send;
-    edge.in  = pulse.clock;
-    
-    
-   
-    
-    
-    case(state.q)
-      
-      {
-      state.WRITE_RAM:
-        
-        if(pulse2.clock >= NUM_BYTES) state.d = state.READ_RAM; 
-         else  
-          {
-          ram.write_data = pulse2.clock;
-          ram.address    = pulse2.clock;
-          ram.write_en   = 1;
-          }
-        
+    spi_miso        = bz;          // not using SPI
+    spi_channel     = bzzzz;       // not using flags
+    avr_rx          = bz;          // not using serial port
          
-      state.READ_RAM: 
-        if(pulse2.clock <= NUM_BYTES) 
-           { 
-           ram.address    = pulse2.clock;
-           ram.write_en   = 0;
-           led = ram.read_data;
-           test1 = 1; 
-           load  = 1;
-           }
-          
-    }
-      
-  }  
+    
+    // Set outputs to don't care. This means they don't change after being set in the state machine
+    led             = 8bxxxxxxxx; 
+        
+    // Set ram inputs to don't care. This means they don't change after being set in the state machine
+     ram.write_en   = 1bx;
+     ram.address    = 16bxxxxxxxxxx;
+     ram.write_data = 16bxxxxxxxxxxxxxxxx;
+
+    
+    transmit_to_teensy.block    = 0;
+    transmit_to_teensy.data     = 8bxxxxxxxx;
+    transmit_to_teensy.new_data = 0;
+    
+    uart_tx  = transmit_to_teensy.tx;
+    receive_from_teensy.rx = uart_rx;
    
+    
+    
+    for(index =0; index >= 1000; index++)
+      {
+     
+      ram.write_data     = 375;
+      ram.address    =   index;
+      ram.write_en   = 1;
+    
+      }
+
+    
+// *************** FSM to receive data from the Teensy *****************************************************    
+     case(receive_word.q)
+     { 
+      receive_word.IDLE:
+        
+        if(receive_from_teensy.new_data == 1) receive_word.d = receive_word.ACTION;
+        
+        
+        
+      receive_word.ACTION:
+            led = receive_from_teensy.data;    
+            receive_word.d = receive_word.IDLE;
+            }
+    
+    
+    
+    
+    
+    
+    
+        
+    
+//***************** FSM that sends high then low bytes of a 16 bit word stored in word *********************** 
+    case(send_word.q)
+     { 
+      send_word.IDLE:
+        transmit_to_teensy.block    = 1;
+        transmit_to_teensy.new_data = 0;
+        if(request_to_send == 1) send_word.d = send_word.HIGH_BYTE;   
+        
+        
+      send_word.HIGH_BYTE:
+           if(transmit_to_teensy.busy == 0) 
+            {
+            
+            ram.write_en   = 0;
+            ram.address    = 300;
+                            
+            transmit_to_teensy.block    = 0;
+            transmit_to_teensy.data     = ram.read_data[15:8];
+            transmit_to_teensy.new_data = 1;
+           
+            send_word.d = send_word.LOW_BYTE;  
+            }
+        
+        send_word.LOW_BYTE:
+           if(transmit_to_teensy.busy == 0) 
+            {
+            ram.write_en   = 0;
+            ram.address    = 300;
+                            
+            transmit_to_teensy.block    = 0;
+            transmit_to_teensy.data     = ram.read_data[7:0];
+            transmit_to_teensy.new_data = 1;
+                       
+            send_word.d = send_word.IDLE;  
+            }
+                 
+      }    
+    
+     }  
+ 
 }
